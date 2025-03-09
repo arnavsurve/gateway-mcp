@@ -1,4 +1,6 @@
-from mcp.server.fastmcp import FastMCP
+import asyncio
+
+from mcp.server.fastmcp import Context, FastMCP
 
 from lib.service_registry import ServiceRegistry
 
@@ -42,7 +44,56 @@ def discover_services(query: str = "", category: str = "") -> str:
 def get_service_details(service_id: str) -> str:
     """
     Get detailed information about a specific service.
+
+    Args:
+        service_id: ID of the service to get details for
     """
+
+    service = registry.get_service(service_id)
+    if not service:
+        return f"Service with ID {service_id} not found."
+
+    # Format service details
+    result = f"Service: {service.name}\n\n"
+    result += f"ID: {service.id}\n"
+    result += f"Description: {service.description}"
+    result += f"URL: {service.url}"
+
+    # Capabilities
+    result += "Capabilities:\n"
+    for cap, enabled in service.capabilities.items():
+        result += f"- {cap}: {"enabled" if enabled else "disabled"}\n"
+
+    # Categories
+    if service.metadata:
+        result += "\nMetadata:\n"
+        for key, value in service.metadata.items():
+            result += f"- {key}: {value}\n"
+
+    return result
+
+
+@gateway.tool()
+async def connect_to_service(service_id: str, ctx: Context) -> str:
+    """
+    Establish a connection to a service and get its capabilities.
+
+    Args:
+        service_id: ID of the service to connect to
+    """
+
+    service = registry.get_service(service_id)
+    if not service:
+        return f"Service with ID {service_id} not found."
+
+    try:
+        # TODO: use MCP client to connect
+        # for now we simulate
+        await asyncio.sleep(1)
+
+        return f"Successfully connected to {service.name}. Ready to use service capabilities."
+    except Exception as e:
+        return f"Failed to connect to service: {str(e)}"
 
 
 if __name__ == "__main__":
