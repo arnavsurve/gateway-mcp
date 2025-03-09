@@ -6,16 +6,16 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 
 # Initialize MCP gateway server
-gateway = FastMCP("mcp-gateway")
+server = FastMCP("mcp-gateway")
 
-# Registry API endpoint - adjust to match your Go server
-REGISTRY_API_URL = "http://localhost:8080"
+REGISTRY_API_URL = "http://localhost:42069"
 
 
 async def fetch_from_registry(
     path: str, params: Optional[Dict[str, str]] = None
 ) -> Optional[Any]:
     """Helper function to fetch data from registry API"""
+    url = ""
     try:
         async with httpx.AsyncClient() as client:
             url = f"{REGISTRY_API_URL}{path}"
@@ -23,11 +23,11 @@ async def fetch_from_registry(
             response.raise_for_status()
             return response.json()
     except Exception as e:
-        print(f"Error fetching from registry: {str(e)} (URL: {path})", file=sys.stderr)
+        print(f"Error fetching from registry: {str(e)} (URL: {url})", file=sys.stderr)
         return None
 
 
-@gateway.tool()
+@server.tool()
 async def discover_services(query: str = "", category: str = "") -> str:
     """Discover available MCP services based on search criteria.
 
@@ -39,11 +39,10 @@ async def discover_services(query: str = "", category: str = "") -> str:
         if query:
             services = await fetch_from_registry("/services/search", {"q": query})
         elif category:
-            services = await fetch_from_registry(
-                "/services/list", {"category": category}
-            )
+            services = await fetch_from_registry("/services", {"category": category})
         else:
-            services = await fetch_from_registry("/services/list")
+            # Updated to match Go API endpoint
+            services = await fetch_from_registry("/services")
 
         if not services or len(services) == 0:
             return "No matching services found."
@@ -66,7 +65,7 @@ async def discover_services(query: str = "", category: str = "") -> str:
         return f"Error discovering services: {str(e)}"
 
 
-@gateway.tool()
+@server.tool()
 async def get_service_details(service_id: str) -> str:
     """Get detailed information about a specific service.
 
@@ -103,7 +102,7 @@ async def get_service_details(service_id: str) -> str:
         return f"Error getting service details: {str(e)}"
 
 
-@gateway.tool()
+@server.tool()
 async def connect_to_service(service_id: str) -> str:
     """Establish a connection to a remote MCP service.
 
@@ -130,12 +129,12 @@ async def connect_to_service(service_id: str) -> str:
         return f"Error connecting to service: {str(e)}"
 
 
-@gateway.tool()
+@server.tool()
 async def list_service_categories() -> str:
     """List all available service categories in the registry."""
     try:
-        # For MVP, we'll fetch all services and extract unique categories
-        services = await fetch_from_registry("/services/list")
+        # Fetch all services from the updated endpoint
+        services = await fetch_from_registry("/services")
         if not services:
             return "No services found in the registry."
 
@@ -159,7 +158,7 @@ async def list_service_categories() -> str:
         return f"Error listing categories: {str(e)}"
 
 
-@gateway.tool()
+@server.tool()
 async def http_request(
     method: str,
     url: str,
@@ -206,7 +205,7 @@ async def http_request(
         return f"Error making HTTP request: {str(e)}"
 
 
-@gateway.tool()
+@server.tool()
 async def register_service(
     name: str,
     description: str,
@@ -249,7 +248,7 @@ async def register_service(
         return f"Error registering service: {str(e)}"
 
 
-@gateway.tool()
+@server.tool()
 async def unregister_service(service_id: str) -> str:
     """Remove a service from the registry.
 
@@ -270,4 +269,4 @@ async def unregister_service(service_id: str) -> str:
 
 if __name__ == "__main__":
     print("Starting MCP Gateway Server...", file=sys.stderr)
-    gateway.run(transport="stdio")  # Using stdio for Claude Desktop
+    server.run(transport="stdio")  # Using stdio for Claude Desktop
