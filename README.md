@@ -1,3 +1,3 @@
 # gateway
 
-unlock your MCP-enabled LLM.
+Unlock your LLM 🥱
